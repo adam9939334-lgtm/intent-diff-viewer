@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Octokit } from "@octokit/rest";
 import DiffViewer, { CheckpointIntent } from "@/components/DiffViewer";
 import Link from "next/link";
@@ -8,13 +9,41 @@ interface PageProps {
 
 const GRAIN = "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E\")";
 
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const { data: dataParam } = await searchParams;
+  let goal = "";
+  if (dataParam) {
+    try {
+      const intent = JSON.parse(Buffer.from(dataParam, "base64").toString("utf-8"));
+      goal = typeof intent.goal === "string" ? intent.goal : "";
+    } catch { /* invalid link */ }
+  }
+  const description = goal
+    ? `Goal: ${goal}`
+    : "Structured intent for an AI-generated pull request.";
+  return {
+    title: "Review Checkpoint — Intent Diff Viewer",
+    description,
+    openGraph: { title: "Review Checkpoint", description },
+    twitter: { card: "summary", title: "Review Checkpoint", description },
+  };
+}
+
 function ErrorPage({ message }: { message: string }) {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "#060606", fontFamily: "var(--font-mono)" }}>
-      <p className="text-sm text-red-400 border-l-2 border-red-500 pl-3 py-1 mb-6">{message}</p>
-      <Link href="/" className="text-xs text-zinc-500 hover:text-lime-400 transition-colors">
-        ← create a new checkpoint
-      </Link>
+      <div className="pointer-events-none fixed inset-0 z-50" style={{
+        backgroundImage: GRAIN,
+        backgroundRepeat: "repeat", backgroundSize: "128px 128px", opacity: 0.025,
+      }} />
+      <div className="flex flex-col items-center gap-6 text-center max-w-sm">
+        <span className="text-2xl text-zinc-700">⚠</span>
+        <p className="text-sm text-red-400 border-l-2 border-red-500 pl-3 py-1 text-left">{message}</p>
+        <Link href="/" className="text-xs text-zinc-500 hover:text-lime-400 transition-colors flex items-center gap-2">
+          <span className="text-lime-400">←</span>
+          <span>create a new checkpoint</span>
+        </Link>
+      </div>
     </main>
   );
 }
