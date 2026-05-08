@@ -33,23 +33,36 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [autofilling, setAutofilling] = useState(false);
   const [autofilled, setAutofilled] = useState(false);
+  const [lastAutofillUrl, setLastAutofillUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
   const [shareUrl, setShareUrl] = useState<string>("");
 
-  async function handlePrUrlBlur() {
-    if (!prUrl.match(/github\.com\/[^/]+\/[^/]+\/pull\/\d+/)) return;
-    if (goal || autofilled) return;
+  async function tryAutofill(url: string) {
+    if (!url.match(/github\.com\/[^/]+\/[^/]+\/pull\/\d+/)) return;
+    if (url === lastAutofillUrl) return;
     setAutofilling(true);
     try {
-      const res = await fetch(`/api/pr-meta?url=${encodeURIComponent(prUrl)}`);
+      const res = await fetch(`/api/pr-meta?url=${encodeURIComponent(url)}`);
       if (!res.ok) return;
       const data = await res.json();
-      if (data.goal && !goal) { setGoal(data.goal); setAutofilled(true); }
-      if (data.constraints && !constraints) setConstraints(data.constraints);
-      if (data.riskAreas && !riskAreas) setRiskAreas(data.riskAreas);
+      if (data.goal) {
+        setGoal(data.goal);
+        setConstraints(data.constraints ?? "");
+        setRiskAreas(data.riskAreas ?? "");
+        setAutofilled(true);
+        setLastAutofillUrl(url);
+      }
     } finally {
       setAutofilling(false);
+    }
+  }
+
+  function handlePrUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const url = e.target.value;
+    setPrUrl(url);
+    if (autofilled && url !== lastAutofillUrl) {
+      setAutofilled(false);
     }
   }
 
@@ -164,13 +177,14 @@ export default function Home() {
               </label>
               <input
                 id="pr-url" type="url" value={prUrl}
-                onChange={(e) => setPrUrl(e.target.value)}
+                onChange={handlePrUrlChange}
                 disabled={loading}
                 placeholder="https://github.com/owner/repo/pull/123"
                 className="w-full bg-zinc-900/60 border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-100 placeholder-zinc-700 outline-none transition-all duration-150 disabled:opacity-40"
                 style={{ fontFamily: "var(--font-mono)" }}
                 onFocus={(e) => { e.target.style.borderColor = "#a3e635"; e.target.style.boxShadow = "0 0 0 1px rgba(163,230,53,0.15)"; }}
-                onBlur={(e) => { e.target.style.borderColor = ""; e.target.style.boxShadow = ""; handlePrUrlBlur(); }}
+                onBlur={(e) => { e.target.style.borderColor = ""; e.target.style.boxShadow = ""; tryAutofill(prUrl); }}
+                onPaste={(e) => { const pasted = e.clipboardData.getData("text"); setTimeout(() => tryAutofill(pasted), 0); }}
               />
               {autofilling && (
                 <p className="mt-1.5 text-[11px] text-zinc-600 font-mono">parsing PR description...</p>
