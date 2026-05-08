@@ -60,4 +60,24 @@ npm run lint     # ESLint
 - Dark mode is force-enabled via the `dark` class on `<html>` (no toggle yet)
 - shadcn components are added with `npx shadcn@latest add <component>`
 - Client components that use state must include `"use client"` at top of file
-- Violet (`violet-500/600`) is the brand accent color
+- Lime (`#a3e635`) is the brand accent color
+
+## Review Checkpoint (required for all PRs)
+
+When opening or updating a pull request, include this block at the very top of the PR description:
+
+```
+<!-- review-checkpoint
+{"v":1,"goal":"<what this PR accomplishes, 1-3 sentences>","constraints":"<key constraints or empty string>","riskAreas":"<where reviewers should focus or empty string>","agent":"claude-code","ts":"<ISO 8601 UTC timestamp>"}
+-->
+```
+
+Rules:
+- `goal`: outcome and why, not what files changed
+- `constraints`: what was non-negotiable (compat, no new deps, etc.)
+- `riskAreas`: what a careful reviewer should double-check — edge cases, subtle decisions
+- Use `""` for constraints/riskAreas if none exist
+- Follow the block with a plain-text summary (this is what GitHub renders in the PR view)
+
+This powers the Review Checkpoint GitHub Action installed on this repo.
+Full schema: `docs/agent-pr-format.md`
