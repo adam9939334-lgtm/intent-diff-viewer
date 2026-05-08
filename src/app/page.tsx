@@ -31,9 +31,27 @@ export default function Home() {
   const [constraints, setConstraints] = useState("");
   const [riskAreas, setRiskAreas] = useState("");
   const [loading, setLoading] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+  const [autofilled, setAutofilled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
   const [shareUrl, setShareUrl] = useState<string>("");
+
+  async function handlePrUrlBlur() {
+    if (!prUrl.match(/github\.com\/[^/]+\/[^/]+\/pull\/\d+/)) return;
+    if (goal || autofilled) return;
+    setAutofilling(true);
+    try {
+      const res = await fetch(`/api/pr-meta?url=${encodeURIComponent(prUrl)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.goal && !goal) { setGoal(data.goal); setAutofilled(true); }
+      if (data.constraints && !constraints) setConstraints(data.constraints);
+      if (data.riskAreas && !riskAreas) setRiskAreas(data.riskAreas);
+    } finally {
+      setAutofilling(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -152,14 +170,18 @@ export default function Home() {
                 className="w-full bg-zinc-900/60 border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-100 placeholder-zinc-700 outline-none transition-all duration-150 disabled:opacity-40"
                 style={{ fontFamily: "var(--font-mono)" }}
                 onFocus={(e) => { e.target.style.borderColor = "#a3e635"; e.target.style.boxShadow = "0 0 0 1px rgba(163,230,53,0.15)"; }}
-                onBlur={(e) => { e.target.style.borderColor = ""; e.target.style.boxShadow = ""; }}
+                onBlur={(e) => { e.target.style.borderColor = ""; e.target.style.boxShadow = ""; handlePrUrlBlur(); }}
               />
+              {autofilling && (
+                <p className="mt-1.5 text-[11px] text-zinc-600 font-mono">parsing PR description...</p>
+              )}
             </div>
 
             {/* Goal */}
             <div>
-              <label htmlFor="goal" className="block text-xs text-zinc-400 mb-2 tracking-widest uppercase">
+              <label htmlFor="goal" className="block text-xs text-zinc-400 mb-2 tracking-widest uppercase flex items-center gap-2">
                 › Goal <span className="text-zinc-700 normal-case tracking-normal">— what was the agent trying to accomplish?</span>
+                {autofilled && <span className="text-[10px] text-lime-600 font-mono normal-case tracking-normal">auto-filled from PR</span>}
               </label>
               <textarea
                 id="goal" value={goal}

@@ -1,0 +1,99 @@
+# Review Checkpoint GitHub Action
+# ================================
+# Add this file to .github/workflows/ in your repository.
+# It automatically posts a structured Review Checkpoint comment on every PR
+# that includes ## Goal, ## Constraints, and ## Risk Areas sections.
+#
+# Setup:
+# 1. Copy this file to .github/workflows/review-checkpoint.yml in your repo
+# 2. Add .github/pull_request_template.md to your repo (see docs/pr-template.md)
+# 3. That's it. No secrets or tokens required.
+#
+# More info: https://intent-diff-viewer.vercel.app
+
+name: Review Checkpoint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  checkpoint:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post Review Checkpoint
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body ?? '';
+            const prUrl = context.payload.pull_request.html_url;
+            const prNumber = context.payload.pull_request.number;
+
+            function parseSection(body, names) {
+              const pattern = new RegExp(
+                `##\\s+(?:${names.join('|')})\\s*\\n([\\s\\S]*?)(?=##|$)`,
+                'i'
+              );
+              const match = body.match(pattern);
+              return match ? match[1].trim() : null;
+            }
+
+            const goal = parseSection(body, ['Goal']);
+            const constraints = parseSection(body, ['Constraints', 'Constraint']);
+            const riskAreas = parseSection(body, ['Risk Areas', 'Risk Area', 'Risks', 'Risk']);
+
+            if (!goal) {
+              console.log('No ## Goal section found in PR description — skipping checkpoint.');
+              return;
+            }
+
+            // Build rich viewer link (encodes intent as base64 in URL)
+            const intentData = Buffer.from(JSON.stringify({
+              goal,
+              constraints: constraints ?? '',
+              riskAreas: riskAreas ?? ''
+            })).toString('base64');
+            const viewUrl = `https://intent-diff-viewer.vercel.app/view?pr=${encodeURIComponent(prUrl)}&data=${intentData}`;
+
+            // Build comment body
+            let comment = `<!-- review-checkpoint-bot -->\n`;
+            comment += `### Review Checkpoint\n\n`;
+            comment += `**Goal** — ${goal}\n\n`;
+            if (constraints) {
+              comment += `**Constraints** — ${constraints}\n\n`;
+            }
+            if (riskAreas) {
+              comment += `**⚠ Risk Areas** — ${riskAreas}\n\n`;
+            }
+            comment += `[View diff with context ↗](${viewUrl})`;
+
+            // Update existing bot comment if present, otherwise create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const existing = comments.find(c =>
+              c.body?.includes('<!-- review-checkpoint-bot -->')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: comment,
+              });
+              console.log('Updated existing Review Checkpoint comment.');
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: comment,
+              });
+              console.log('Posted Review Checkpoint comment.');
+            }
