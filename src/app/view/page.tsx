@@ -11,10 +11,18 @@ const GRAIN = "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http
 function ErrorPage({ message }: { message: string }) {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "#060606", fontFamily: "var(--font-mono)" }}>
-      <p className="text-sm text-red-400 border-l-2 border-red-500 pl-3 py-1 mb-6">{message}</p>
-      <Link href="/" className="text-xs text-zinc-500 hover:text-lime-400 transition-colors">
-        ← create a new checkpoint
-      </Link>
+      <div className="pointer-events-none fixed inset-0 z-50" style={{
+        backgroundImage: GRAIN,
+        backgroundRepeat: "repeat", backgroundSize: "128px 128px", opacity: 0.025,
+      }} />
+      <div className="flex flex-col items-center gap-6 text-center max-w-sm">
+        <span className="text-2xl text-zinc-700">⚠</span>
+        <p className="text-sm text-red-400 border-l-2 border-red-500 pl-3 py-1 text-left">{message}</p>
+        <Link href="/" className="text-xs text-zinc-500 hover:text-lime-400 transition-colors flex items-center gap-2">
+          <span className="text-lime-400">←</span>
+          <span>create a new checkpoint</span>
+        </Link>
+      </div>
     </main>
   );
 }
