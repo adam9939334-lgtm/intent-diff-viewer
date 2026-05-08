@@ -10,11 +10,18 @@ interface DiffFile {
   deletions: number;
 }
 
+export interface CheckpointIntent {
+  goal: string;
+  constraints: string;
+  riskAreas: string;
+}
+
 interface DiffViewerProps {
   title: string;
   description: string;
   files: DiffFile[];
-  prompt: string;
+  intent: CheckpointIntent;
+  shareUrl?: string;
 }
 
 function getFileSegments(filename: string): { dir: string; base: string } {
@@ -89,7 +96,29 @@ function FileCard({ file }: { file: DiffFile }) {
   );
 }
 
-export default function DiffViewer({ title, description, files, prompt }: DiffViewerProps) {
+function CopyButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="flex items-center gap-2 text-xs font-mono transition-colors duration-150"
+      style={{ color: copied ? "#a3e635" : "rgb(113 113 122)" }}
+    >
+      <span>{copied ? "✓" : "⎘"}</span>
+      <span>{copied ? "copied" : "copy share link"}</span>
+    </button>
+  );
+}
+
+export default function DiffViewer({ title, description, files, intent, shareUrl }: DiffViewerProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
@@ -98,24 +127,43 @@ export default function DiffViewer({ title, description, files, prompt }: DiffVi
 
   return (
     <div className="flex flex-col gap-5 w-full">
-      {/* Intent card */}
+
+      {/* Review Checkpoint card */}
       <div
         className="rounded-xl overflow-hidden"
         style={{
-          border: "1px solid rgba(139,92,246,0.25)",
-          background: "rgba(139,92,246,0.04)",
-          borderLeft: "3px solid rgba(139,92,246,0.7)",
+          border: "1px solid rgba(163,230,53,0.2)",
+          background: "rgba(163,230,53,0.03)",
+          borderLeft: "3px solid #a3e635",
         }}
       >
-        <div className="px-5 pt-4 pb-1 flex items-center gap-2">
-          <span className="text-[10px] font-mono tracking-widest text-violet-400 uppercase font-semibold">
-            AI Intent
-          </span>
-          <span className="text-zinc-800 text-xs">·</span>
-          <span className="text-[10px] text-zinc-600 font-mono">the why behind this PR</span>
+        <div className="px-5 pt-4 pb-1 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono tracking-widest text-lime-400 uppercase font-semibold">
+              Review Checkpoint
+            </span>
+            <span className="text-zinc-800 text-xs">·</span>
+            <span className="text-[10px] text-zinc-600 font-mono">structured intent for this PR</span>
+          </div>
+          {shareUrl && mounted && <CopyButton url={shareUrl} />}
         </div>
-        <div className="px-5 pb-5">
-          <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{prompt}</p>
+        <div className="px-5 pb-5 flex flex-col gap-4 mt-2">
+          <div>
+            <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider mb-1.5">Goal</p>
+            <p className="text-sm text-zinc-300 leading-relaxed">{intent.goal}</p>
+          </div>
+          {intent.constraints && (
+            <div>
+              <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider mb-1.5">Constraints</p>
+              <p className="text-sm text-zinc-400 leading-relaxed">{intent.constraints}</p>
+            </div>
+          )}
+          {intent.riskAreas && (
+            <div>
+              <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider mb-1.5">Risk Areas</p>
+              <p className="text-sm leading-relaxed" style={{ color: "rgba(251,191,36,0.8)" }}>{intent.riskAreas}</p>
+            </div>
+          )}
         </div>
       </div>
 

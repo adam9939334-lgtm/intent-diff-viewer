@@ -2,7 +2,9 @@ import { Octokit } from "@octokit/rest";
 
 interface AnalyzeRequest {
   prUrl: string;
-  prompt: string;
+  goal: string;
+  constraints?: string;
+  riskAreas?: string;
 }
 
 interface DiffFile {
@@ -30,10 +32,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { prUrl, prompt } = body;
+  const { prUrl, goal, constraints = "", riskAreas = "" } = body;
 
-  if (!prUrl || !prompt) {
-    return Response.json({ error: "prUrl and prompt are required" }, { status: 400 });
+  if (!prUrl || !goal) {
+    return Response.json({ error: "prUrl and goal are required" }, { status: 400 });
   }
 
   const parsed = parsePrUrl(prUrl);
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
       title: prResponse.data.title,
       description: prResponse.data.body ?? "",
       files,
-      prompt,
+      intent: { goal, constraints, riskAreas },
     });
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
