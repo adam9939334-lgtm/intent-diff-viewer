@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Geist_Mono } from "next/font/google";
+import { Instrument_Serif, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-sans",
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-display",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  weight: "400",
 });
 
-const geistMono = Geist_Mono({
+const spaceMono = Space_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -26,7 +28,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${instrumentSerif.variable} ${spaceMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
